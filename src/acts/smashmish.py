@@ -105,3 +105,40 @@ class AsymMish(nn.Module):
     @property
     def beta_n(self):
         return F.softplus(self.beta_n_raw).detach()
+
+class gSineMish(nn.Module):
+    """
+    Global Sine-Mish:
+        y = x * tanh(softplus(x)) + α * sigmoid(-γ * x) * sin(β * x)
+
+    Parameters
+    ----------
+    alpha, beta, gamma : float
+        Initial values for amplitude α, frequency β, and decay γ.
+    trainable : bool
+        If True, α/β/γ are set as trainable parameters (nn.Parameter);
+        otherwise, they are registered as buffers and can still be accessed via .alpha/.beta/.gamma during inference.
+    """
+    def __init__(self, alpha=0.1, beta=1.0, gamma=1.0, *, trainable=False):
+        super().__init__()
+
+        tensor_args = dict(dtype=torch.float32)
+
+        if trainable:
+            self.alpha = nn.Parameter(torch.tensor(alpha, **tensor_args))
+            self.beta  = nn.Parameter(torch.tensor(beta , **tensor_args))
+            self.gamma = nn.Parameter(torch.tensor(gamma, **tensor_args))
+        else:
+            self.register_buffer("alpha", torch.tensor(alpha, **tensor_args))
+            self.register_buffer("beta" , torch.tensor(beta , **tensor_args))
+            self.register_buffer("gamma", torch.tensor(gamma, **tensor_args))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        mish_part = x * torch.tanh(F.softplus(x))
+        osc_part  = self.alpha * torch.sigmoid(-self.gamma * x) * torch.sin(self.beta * x)
+        return mish_part + osc_part
+
+    def extra_repr(self) -> str:
+        status = "trainable" if isinstance(self.alpha, nn.Parameter) else "fixed"
+        return f"alpha={self.alpha.item():.4f}, beta={self.beta.item():.4f}, " \
+               f"gamma={self.gamma.item():.4f} ({status})"
