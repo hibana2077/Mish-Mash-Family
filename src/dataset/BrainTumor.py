@@ -6,6 +6,8 @@ import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 import numpy as np
+import subprocess
+import shutil
 
 
 class BrainTumorDataset(Dataset):
@@ -14,30 +16,31 @@ class BrainTumorDataset(Dataset):
     
     Similar to MNIST dataset structure, this dataset provides brain X-ray images
     for fine-grain classification into 4 categories:
-    - Glioma Tumor (n0)
-    - Meningioma Tumor (n1) 
-    - Pituitary Tumor (n2)
-    - No Tumor (n3)
+    - glioma_tumor
+    - meningioma_tumor  
+    - pituitary_tumor
+    - no_tumor
     
     Args:
         root (str): Root directory containing the dataset
-        train (bool): If True, creates dataset from training set, otherwise from validation set
+        train (bool): If True, creates dataset from training set, otherwise from testing set
         transform (callable, optional): A function/transform to apply to images
         target_transform (callable, optional): A function/transform to apply to targets
-        download (bool): If True, downloads the dataset (not implemented in this version)
+        download (bool): If True, downloads the dataset from GitHub
     """
     
     # Dataset metadata
     classes = [
-        'Glioma Tumor',
-        'Meningioma Tumor', 
-        'Pituitary Tumor',
-        'No Tumor'
+        'glioma_tumor',
+        'meningioma_tumor', 
+        'pituitary_tumor',
+        'no_tumor'
     ]
     
     class_to_idx = {cls: idx for idx, cls in enumerate(classes)}
     
-    url = "https://ibm.ent.box.com/index.php?rm=box_download_shared_file&shared_name=5ich3fqgpnbmkdho2eoe7fe4uwrplcfi&file_id=f_978363130854"
+    # GitHub repository URL
+    git_url = "https://github.com/SartajBhuvaji/Brain-Tumor-Classification-DataSet.git"
     
     def __init__(self, root, train=True, transform=None, target_transform=None, download=False):
         self.root = os.path.expanduser(root)
@@ -49,45 +52,46 @@ class BrainTumorDataset(Dataset):
             self.download()
             
         # Determine data path based on train/test split
-        if self.train:
-            data_path = os.path.join(self.root, "xrays", "training", "training")
-        else:
-            data_path = os.path.join(self.root, "xrays", "validation", "validation") 
+        split_name = "Training" if self.train else "Testing"
+        data_path = os.path.join(self.root, "Brain-Tumor-Classification-DataSet", split_name)
             
         if not os.path.exists(data_path):
             raise RuntimeError(
                 f'Dataset not found at {data_path}. '
-                f'You can use download=True to download it (manual download required)'
+                f'You can use download=True to download it from GitHub'
             )
             
         # Load image paths and labels
         self.data, self.targets = self._load_data(data_path)
         
-    def _load_data(self, filepath):
-        """Load image paths and corresponding labels"""
-        paths = list(Path(filepath).glob("**/*.jpg"))
-        data = []
+    def _load_data(self, data_path):
+        """Load image paths and corresponding labels from class folders"""
+        image_paths = []
+        targets = []
         
-        for path in paths:
-            # Extract tumor type from folder name (n0, n1, n2, n3)
-            tumor_folder = str(path).split(os.sep)[-2]
-            label_idx = int(tumor_folder[1])  # Extract number from 'n0', 'n1', etc.
-            label_name = self.classes[label_idx]
+        # Iterate through each class folder
+        for class_name in self.classes:
+            class_folder = os.path.join(data_path, class_name)
             
-            data.append({
-                "file": str(path), 
-                "label": label_name,
-                "label_idx": label_idx
-            })
+            if not os.path.exists(class_folder):
+                print(f"Warning: Class folder {class_folder} not found, skipping...")
+                continue
+                
+            # Get all jpg files in the class folder
+            class_images = list(Path(class_folder).glob("*.jpg"))
+            
+            # Add images and labels
+            for img_path in class_images:
+                image_paths.append(str(img_path))
+                targets.append(self.class_to_idx[class_name])
         
-        # Convert to DataFrame and sort for consistent ordering
-        df = pd.DataFrame(data)
-        df = df.sort_values("file").reset_index(drop=True)
+        # Sort for consistent ordering
+        combined = list(zip(image_paths, targets))
+        combined.sort(key=lambda x: x[0])  # Sort by image path
         
-        image_paths = df["file"].tolist()
-        targets = df["label_idx"].tolist()
+        image_paths, targets = zip(*combined) if combined else ([], [])
         
-        return image_paths, targets
+        return list(image_paths), list(targets)
     
     def __len__(self):
         return len(self.data)
@@ -116,13 +120,34 @@ class BrainTumorDataset(Dataset):
         return image, target
     
     def download(self):
-        """Download the dataset (placeholder - requires manual download)"""
-        print(f"Please manually download the dataset from: {self.url}")
-        print(f"Extract it to: {self.root}")
-        raise NotImplementedError(
-            "Automatic download not implemented. "
-            "Please download manually from Kaggle and extract to the root directory."
-        )
+        """Download the dataset from GitHub repository"""
+        dataset_path = os.path.join(self.root, "Brain-Tumor-Classification-DataSet")
+        
+        if os.path.exists(dataset_path):
+            print(f"Dataset already exists at {dataset_path}")
+            return
+            
+        print(f"Downloading dataset from {self.git_url}")
+        
+        try:
+            # Create root directory if it doesn't exist
+            os.makedirs(self.root, exist_ok=True)
+            
+            # Clone the repository directly to the desired location
+            subprocess.run([
+                "git", "clone", self.git_url, "Brain-Tumor-Classification-DataSet"
+            ], check=True, cwd=self.root)
+            
+            print(f"Dataset downloaded successfully to {dataset_path}")
+            
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"Failed to download dataset: {e}")
+        except FileNotFoundError:
+            raise RuntimeError(
+                "Git is not installed or not found in PATH. "
+                "Please install Git or download the dataset manually from: "
+                f"{self.git_url}"
+            )
     
     def extra_repr(self):
         return f"Split: {'Train' if self.train else 'Test'}"
@@ -170,11 +195,12 @@ class BrainTumorTransforms:
 
 # Example usage
 if __name__ == "__main__":
-    # Create datasets
+    # Create datasets (with automatic download)
     train_dataset = BrainTumorDataset(
         root='./data',
         train=True,
-        transform=BrainTumorTransforms.get_train_transform()
+        transform=BrainTumorTransforms.get_train_transform(),
+        download=True  # This will clone the GitHub repository
     )
     
     test_dataset = BrainTumorDataset(
@@ -206,7 +232,20 @@ if __name__ == "__main__":
     print(f"Classes: {train_dataset.classes}")
     print(f"Number of classes: {len(train_dataset.classes)}")
     
+    # Print class distribution
+    print("\nClass distribution:")
+    for split, dataset in [("Train", train_dataset), ("Test", test_dataset)]:
+        class_counts = {}
+        for target in dataset.targets:
+            class_name = dataset.classes[target]
+            class_counts[class_name] = class_counts.get(class_name, 0) + 1
+        
+        print(f"{split}:")
+        for class_name, count in class_counts.items():
+            print(f"  {class_name}: {count}")
+    
     # Example: Get a sample
     image, label = train_dataset[0]
+    print(f"\nSample info:")
     print(f"Image shape: {image.shape}")
     print(f"Label: {label} ({train_dataset.classes[label]})")
