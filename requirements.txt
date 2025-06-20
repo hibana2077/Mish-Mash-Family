@@ -8,3 +8,4 @@ Pillow
 seaborn
 torch
 torchvision
+zipfile
