@@ -50,7 +50,7 @@ class AsymMish(nn.Module):
         beta_p > 0         # Slope of softplus in positive region
         beta_n > 0         # Slope of softplus in negative region (can set < beta_p for "softer" negative side)
     """
-    def __init__(self, alpha_init=0.5, beta_p_init=1.0, beta_n_init=1.0, eps: float = 1e-6):
+    def __init__(self, alpha_init=0.5, beta_p_init=1.0, beta_n_init=1.0, eps: float = 1e-6, **kwargs):
         """
         alpha_init, beta_p_init, beta_n_init are initial values; do not need to satisfy constraints,
         but reasonable values can speed up convergence.
