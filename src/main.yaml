@@ -5,8 +5,8 @@ seed: 42
 
 dataset:
   # Options: CUB200, IP102, StanfordDogs, Pokemon, BrainTumor, LiverTumor
-  name: BrainTumor
-  root: ./data/BrainTumor
+  name: LiverTumor
+  root: ./data/LiverTumor
   batch_size: 32
   num_workers: 6
 
