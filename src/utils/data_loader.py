@@ -5,10 +5,10 @@ import timm
 from torch.utils.data import DataLoader
 
 # Import dataset utilities
-from datasets.CUB200 import create_cub_dataloaders, CUB200Dataset
-from datasets.IP102 import create_ip102_dataloaders, IP102Dataset
-from datasets.StandfordDogs import StanfordDogsDataset, get_transforms
-from datasets.Pokemon import PokemonDataset, create_dataloaders
+from dataset.CUB200 import create_cub_dataloaders, CUB200Dataset
+from dataset.IP102 import create_ip102_dataloaders, IP102Dataset
+from dataset.StandfordDogs import StanfordDogsDataset, get_transforms
+from dataset.Pokemon import PokemonDataset, create_dataloaders
 
 
 def get_dataloaders(cfg, model=None):
