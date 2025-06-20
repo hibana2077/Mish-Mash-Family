@@ -10,6 +10,7 @@ from dataset.IP102 import create_ip102_dataloaders, IP102Dataset
 from dataset.StandfordDogs import StanfordDogsDataset, get_transforms
 from dataset.Pokemon import PokemonDataset, create_dataloaders
 from dataset.BrainTumor import BrainTumorDataset, BrainTumorTransforms
+from dataset.LiverTumor import LiverTumorDataset, LiverTumorTransforms
 
 
 def get_dataloaders(cfg, model=None):
@@ -94,6 +95,17 @@ def get_dataloaders(cfg, model=None):
         else:
             train_ds = BrainTumorDataset(root, train=True, transform=BrainTumorTransforms.get_train_transform(), download=True)
             test_ds = BrainTumorDataset(root, train=False, transform=BrainTumorTransforms.get_test_transform(), download=False)
+        train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, 
+                                num_workers=num_workers, pin_memory=True)
+        test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, 
+                               num_workers=num_workers, pin_memory=True)
+    elif name == 'LiverTumor':
+        if train_transform is not None:
+            train_ds = LiverTumorDataset(root, train=True, transform=train_transform, download=True)
+            test_ds = LiverTumorDataset(root, train=False, transform=test_transform, download=False)
+        else:
+            train_ds = LiverTumorDataset(root, train=True, transform=LiverTumorTransforms.get_train_transform(), download=True)
+            test_ds = LiverTumorDataset(root, train=False, transform=LiverTumorTransforms.get_test_transform(), download=False)
         train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, 
                                 num_workers=num_workers, pin_memory=True)
         test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, 
