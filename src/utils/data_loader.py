@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from dataset.CUB200 import create_cub_dataloaders, CUB200Dataset
 from dataset.IP102 import create_ip102_dataloaders, IP102Dataset
 from dataset.StandfordDogs import StanfordDogsDataset, get_transforms
+from dataset.Pokemon import PokemonDataset, create_dataloaders
 
 
 def get_dataloaders(cfg, model=None):
@@ -70,6 +71,17 @@ def get_dataloaders(cfg, model=None):
         else:
             train_ds = StanfordDogsDataset(root, train=True, transform=get_transforms(True), download=True)
             test_ds = StanfordDogsDataset(root, train=False, transform=get_transforms(False), download=False)
+        train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, 
+                                num_workers=num_workers, pin_memory=True)
+        test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, 
+                               num_workers=num_workers, pin_memory=True)
+    elif name == 'Pokemon':
+        if train_transform is not None:
+            train_ds = PokemonDataset(root, split='train', transform=train_transform, download=True)
+            test_ds = PokemonDataset(root, split='test', transform=test_transform, download=False)
+        else:
+            train_ds = PokemonDataset(root, split='train', transform=get_transforms(True), download=True)
+            test_ds = PokemonDataset(root, split='test', transform=get_transforms(False), download=False)
         train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, 
                                 num_workers=num_workers, pin_memory=True)
         test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, 
