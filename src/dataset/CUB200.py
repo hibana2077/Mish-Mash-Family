@@ -7,6 +7,23 @@ from torchvision import transforms
 import tarfile
 import urllib.request
 from typing import Optional, Callable, Tuple, Any
+from tqdm import tqdm
+
+
+class TqdmUpTo(tqdm):
+    """Provides `update_to(n)` which uses `tqdm.update(delta_n)`."""
+    def update_to(self, b=1, bsize=1, tsize=None):
+        """
+        b  : int, optional
+            Number of blocks transferred so far [default: 1].
+        bsize  : int, optional
+            Size of each block (in tqdm units) [default: 1].
+        tsize  : int, optional
+            Total size (in tqdm units). If [default: None] remains unchanged.
+        """
+        if tsize is not None:
+            self.total = tsize
+        return self.update(b * bsize - self.n)
 
 
 class CUB200Dataset(Dataset):
@@ -63,15 +80,21 @@ class CUB200Dataset(Dataset):
             
         os.makedirs(self.root, exist_ok=True)
         
-        # Download the dataset
+        # Download the dataset with progress bar
         print('Downloading CUB-200-2011 dataset...')
         filepath = os.path.join(self.root, self.filename)
-        urllib.request.urlretrieve(self.url, filepath)
         
-        # Extract the dataset
+        with TqdmUpTo(unit='B', unit_scale=True, miniters=1, desc="Downloading") as t:
+            urllib.request.urlretrieve(self.url, filepath, reporthook=t.update_to)
+        
+        # Extract the dataset with progress bar
         print('Extracting dataset...')
         with tarfile.open(filepath, 'r:gz') as tar:
-            tar.extractall(path=self.root)
+            members = tar.getmembers()
+            with tqdm(total=len(members), desc="Extracting") as pbar:
+                for member in members:
+                    tar.extract(member, path=self.root)
+                    pbar.update(1)
         
         # Remove the tar file
         os.remove(filepath)
