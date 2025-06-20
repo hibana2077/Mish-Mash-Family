@@ -4,7 +4,7 @@
 seed: 42
 
 dataset:
-  # Options: CUB200, IP102, StanfordDogs, Pokemon
+  # Options: CUB200, IP102, StanfordDogs, Pokemon, BrainTumor
   name: CUB200
   root: ./data/CUB200
   batch_size: 32
